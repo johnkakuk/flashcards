@@ -1,0 +1,32 @@
+GET http://localhost:8000/api/v1/cards
+
+###
+
+GET http://localhost:8000/api/v1/cards/69b0a639aa0db27d5883a32c
+
+###
+
+POST http://localhost:8000/api/v1/cards
+Content-Type: application/json
+
+{
+    "front": "What is the capital of France?",
+    "back": "Paris",
+    "showNext": "2026-03-19T00:00:00.000Z",
+    "tag": "geography"
+}
+
+###
+
+PATCH http://localhost:8000/api/v1/cards/69b0a5a3aa0db27d5883a322
+Content-Type: application/json
+
+{
+    "lastShown": "2026-03-12T00:00:00.000Z",
+    "showNext": "2026-03-19T00:00:00.000Z"
+}
+
+###
+
+DELETE http://localhost:8000/api/v1/cards/69b0a5a3aa0db27d5883a322
+
