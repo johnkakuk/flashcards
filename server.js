@@ -9,8 +9,8 @@ app.use(cors());
 
 const PORT = process.env.PORT || 8000;
 
-const studentRouter = require('./routes/students')
 const cardRouter = require('./routes/cards')
+const deckRouter = require('./routes/decks')
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -20,8 +20,8 @@ db.on('error', error => console.error(error));
 db.once('open', () => console.log("Database Connection Established"))
 
 app.use(express.json())
-app.use('/api/v1/students', studentRouter)
 app.use('/api/v1/cards', cardRouter)
+app.use('/api/v1/decks', deckRouter)
 
 // Look for static build
 app.use(express.static(path.join(__dirname, '../reactjs/build')));

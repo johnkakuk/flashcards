@@ -1,11 +1,7 @@
 const mongoose = require('mongoose')
 
-const studentSchema = new mongoose.Schema({
+const deckSchema = new mongoose.Schema({
     name: {
-        type: String,
-        required: true
-    },
-    class: {
         type: String,
         required: true
     },
@@ -13,7 +9,7 @@ const studentSchema = new mongoose.Schema({
         type: Date,
         required: true,
         default: Date.now
-    },
+    }
 })
 
-module.exports = mongoose.model('Student', studentSchema)
+module.exports = mongoose.model('Deck', deckSchema)

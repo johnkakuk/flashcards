@@ -19,6 +19,10 @@ const cardSchema = new mongoose.Schema({
         required: true,
         default: Date.now
     },
+    deck: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Deck'
+    },
     tag: {
         type: String,
     },

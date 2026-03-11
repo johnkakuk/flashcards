@@ -30,3 +30,55 @@ Content-Type: application/json
 
 DELETE http://localhost:8000/api/v1/cards/69b0a5a3aa0db27d5883a322
 
+###
+
+# Decks endpoints
+GET http://localhost:8000/api/v1/decks
+
+###
+
+GET http://localhost:8000/api/v1/decks/REPLACE_DECK_ID
+
+###
+
+POST http://localhost:8000/api/v1/decks
+Content-Type: application/json
+
+{
+    "name": "Italian Vocabulary"
+}
+
+###
+
+PATCH http://localhost:8000/api/v1/decks/REPLACE_DECK_ID
+Content-Type: application/json
+
+{
+    "description": "Updated description"
+}
+
+###
+
+DELETE http://localhost:8000/api/v1/decks/REPLACE_DECK_ID
+
+###
+
+# Cards filtered by deck
+GET http://localhost:8000/api/v1/cards?deck=REPLACE_DECK_ID
+
+###
+
+# Cards due today
+GET http://localhost:8000/api/v1/cards?due=today
+
+###
+
+# Invalid card create (missing required fields) — expect 400
+POST http://localhost:8000/api/v1/cards
+Content-Type: application/json
+
+{
+    "front": "Incomplete card"
+}
+
+

@@ -20,7 +20,11 @@ const getCard = async (req, res, next) => {
 // GET ALL
 router.get('/', async (req, res) => {
     try {
-        const cards = await Card.find()
+        const filter = {}
+        if(req.query.deck) {
+            filter.deck = req.query.deck
+        }
+        const cards = await Card.find(filter)
         res.json(cards)
     } catch(error) {
         res.status(500).json({ message: error.message })
@@ -38,7 +42,8 @@ router.post('/', async (req, res) => {
         front: req.body.front,
         back: req.body.back,
         showNext: req.body.showNext || Date.now(),
-        tag: req.body.tag
+        tag: req.body.tag,
+        deck: req.body.deck || null
     })
     try {
         const newCard = await card.save();
