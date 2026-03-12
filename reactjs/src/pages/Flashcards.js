@@ -20,7 +20,8 @@ function Flashcards() {
     const [sessionCards, setSessionCards] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const [showCardMenu, setShowCardMenu] = useState(false)
+    const [openMenuCardId, setOpenMenuCardId] = useState('')
+    const [isAddingCardFromViewAll, setIsAddingCardFromViewAll] = useState(false)
     const [viewingAllCards, setViewingAllCards] = useState(
         Boolean(location.state?.viewingAllCards)
     )
@@ -32,7 +33,7 @@ function Flashcards() {
     const deckName = location.state?.deckName || deckId || 'Deck'
     const cardsLeftCount = sessionCards.length
 
-    // Load session cards on mount
+    // AI Generated: load due cards once per deck for study-session mode.
     useEffect(() => {
         let ignore = false
         const loadTime = new Date()
@@ -74,9 +75,10 @@ function Flashcards() {
         }
     }, [API_BASE, deckId])
 
-    // Load cards for "view all" mode when that mode is activated
+    // AI Generated: load every card when route state enables view-all mode.
     useEffect(() => {
         setViewingAllCards(Boolean(location.state?.viewingAllCards))
+
         if (!viewingAllCards) {
             return
         }
@@ -127,7 +129,7 @@ function Flashcards() {
 
     return (
         // Next line: close the card menu if open when user clicks outside of it
-        <FlashcardsPage onClick={() => setShowCardMenu(false)}> 
+        <FlashcardsPage onClick={() => setOpenMenuCardId('')}> 
             <TopBar>
                 <BackButton type="button" onClick={handleBack}>
                     Back
@@ -151,18 +153,47 @@ function Flashcards() {
                         {allCards.map(card => {
                             return (
                                 <Flashcard
+                                    key={card._id}
                                     cardSet={allCards}
                                     setCardSet={setAllCards}
                                     loading={loading}
                                     setError={setError}
                                     apiBase={API_BASE}
                                     deckId={deckId}
-                                    showCardMenu={showCardMenu}
-                                    setShowCardMenu={setShowCardMenu}
-                                    key={card._id}
+                                    openMenuCardId={openMenuCardId}
+                                    setOpenMenuCardId={setOpenMenuCardId}
+                                    cardIndex={card._id}
+                                    isViewAllMode={true}
                                 />
                             )
                         })}
+                        {isAddingCardFromViewAll ? (
+                            <Flashcard
+                                cardSet={allCards}
+                                setCardSet={setAllCards}
+                                loading={loading}
+                                setError={setError}
+                                apiBase={API_BASE}
+                                deckId={deckId}
+                                openMenuCardId={openMenuCardId}
+                                setOpenMenuCardId={setOpenMenuCardId}
+                                isViewAllMode={true}
+                                startInAddMode={true}
+                                onCloseStandaloneAdd={() => setIsAddingCardFromViewAll(false)}
+                            />
+                        ) : (
+                            <AddCardButton
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation()
+                                    setOpenMenuCardId('')
+                                    setIsAddingCardFromViewAll(true)
+                                }}
+                                aria-label="Add flashcard"
+                            >
+                                <AddCardSymbol>⊕</AddCardSymbol>
+                            </AddCardButton>
+                        )}
                     </CardsGrid>
                 ) : (
                     <Flashcard
@@ -172,8 +203,9 @@ function Flashcards() {
                         setError={setError}
                         apiBase={API_BASE}
                         deckId={deckId}
-                        showCardMenu={showCardMenu}
-                        setShowCardMenu={setShowCardMenu}
+                        openMenuCardId={openMenuCardId}
+                        setOpenMenuCardId={setOpenMenuCardId}
+                        cardIndex={sessionCards[0]?._id}
                     />
                 )}            
             </CardStage>
@@ -191,11 +223,16 @@ function Flashcard({
     setError,
     apiBase,
     deckId,
-    showCardMenu,
-    setShowCardMenu,
-    key
+    openMenuCardId,
+    setOpenMenuCardId,
+    cardIndex,
+    isViewAllMode = false,
+    startInAddMode = false,
+    onCloseStandaloneAdd
 }) {
-    const currentCard = cardSet.find(card => card._id === key) || null
+    // AI Generated: resolve current card from shared cardSet so this component works in both modes.
+    const currentCard = cardSet.find(card => card._id === cardIndex) || null
+    const isCardMenuOpen = openMenuCardId === cardIndex
 
     const [isFlipped, setIsFlipped] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
@@ -208,6 +245,23 @@ function Flashcard({
     })
     const frontEditorRef = useRef(null)
 
+    // AI Generated: when rendered as the standalone "add" tile in view-all, open directly into editor mode.
+    useEffect(() => {
+        if (!startInAddMode) {
+            return
+        }
+
+        setEditorValues({ front: '', back: '' })
+        setIsFlipped(false)
+        setIsEditing(true)
+        setIsAddingNew(true)
+        setError('')
+
+        requestAnimationFrame(() => {
+            frontEditorRef.current?.focus()
+        })
+    }, [setError, startInAddMode])
+
     // Handler for card clicks. Simple class toggle with CSS flip
     const handleFlipCard = () => {
         if (!currentCard || isEditing) {
@@ -216,10 +270,10 @@ function Flashcard({
         setIsFlipped(isCardFlipped => !isCardFlipped)
     }
 
-    // Handler for starting the add flow
+    // AI Generated: open editor in add mode and close contextual menu for this card.
     const handleStartAddNew = () => {
         setEditorValues({ front: '', back: '' })
-        setShowCardMenu(false)
+        setOpenMenuCardId('')
         setIsFlipped(false)
         setIsEditing(true)
         setIsAddingNew(true)
@@ -236,7 +290,7 @@ function Flashcard({
             front: currentCard.front || '',
             back: currentCard.back || ''
         })
-        setShowCardMenu(false)
+        setOpenMenuCardId('')
         setIsFlipped(false)
         setIsEditing(true)
         setIsAddingNew(false)
@@ -245,6 +299,12 @@ function Flashcard({
 
     // Handler for cancel
     const handleCancelEdit = () => {
+        if (startInAddMode) {
+            setError('')
+            onCloseStandaloneAdd?.()
+            return
+        }
+
         setIsEditing(false)
         setIsAddingNew(false)
         setEditorValues({ front: '', back: '' })
@@ -257,7 +317,7 @@ function Flashcard({
             return
         }
 
-        setShowCardMenu(false)
+        setOpenMenuCardId('')
         if (!window.confirm('Delete this card?')) {
             return
         }
@@ -272,7 +332,7 @@ function Flashcard({
                 throw new Error(data.message || 'Unable to delete card')
             }
 
-            setCardSet(cards => cards.slice(1))
+            setCardSet(cards => cards.filter(card => card._id !== currentCard._id))
             setIsEditing(false)
             setIsFlipped(false)
         } catch (err) {
@@ -290,7 +350,8 @@ function Flashcard({
         }
 
         event.preventDefault()
-        handleSaveEditor(event, true)
+        const shouldAddAnother = !isViewAllMode && !isAddingNew
+        handleSaveEditor(event, shouldAddAnother)
     }
 
     // AI-generated: after save-and-continue actions, move focus back to Front for quick entry.
@@ -303,6 +364,8 @@ function Flashcard({
     // Handler for saving both new and edited cards. shouldAddNew functionality is vestigial, keeping it just in case I want it later.
     const handleSaveEditor = async (event, shouldAddNew = false) => {
         event.preventDefault()
+        const canAddAnother = !isViewAllMode && !isAddingNew
+        const shouldAddAnother = shouldAddNew && canAddAnother
 
         if (!isAddingNew && !currentCard) {
             return
@@ -365,22 +428,36 @@ function Flashcard({
                 savedCard = updatedCard
             }
 
-            // Again, this is vestigial, but it allows for flexibility later without changing the core saving logic, so I'm keeping it in for now.
-            if (shouldAddNew) {
+            // AI Generated: update local card state by id so edits/deletes affect the selected card, not array position.
+            const applySavedCardToState = (cards) => {
                 if (isAddingNew) {
-                    setCardSet(cards => [savedCard, ...cards])
-                } else {
-                    setCardSet(cards => [savedCard, ...cards.slice(1)])
+                    if (isViewAllMode) {
+                        return [...cards, savedCard]
+                    }
+                    return [savedCard, ...cards]
                 }
+
+                const savedCardIndex = cards.findIndex(card => card._id === savedCard._id)
+                if (savedCardIndex === -1) {
+                    return cards
+                }
+
+                const nextCards = [...cards]
+                nextCards[savedCardIndex] = savedCard
+                return nextCards
+            }
+
+            if (shouldAddAnother) {
+                setCardSet(applySavedCardToState)
                 setEditorValues({ front: '', back: '' })
                 setIsEditing(true)
                 setIsAddingNew(true)
                 focusFrontEditor()
             } else {
-                if (isAddingNew) {
-                    setCardSet(cards => [savedCard, ...cards])
-                } else {
-                    setCardSet(cards => [savedCard, ...cards.slice(1)])
+                setCardSet(applySavedCardToState)
+                if (startInAddMode) {
+                    onCloseStandaloneAdd?.()
+                    return
                 }
                 setIsEditing(false)
                 setIsAddingNew(false)
@@ -422,7 +499,7 @@ function Flashcard({
                 throw new Error(updatedCard.message || 'Unable to score card')
             }
 
-            setCardSet(cards => cards.slice(1))
+            setCardSet(cards => cards.filter(card => card._id !== currentCard._id))
             setIsFlipped(false)
         } catch (err) {
             setError(err.message || 'Unexpected error while scoring card')
@@ -468,13 +545,24 @@ function Flashcard({
                         >
                             CANCEL
                         </EditorCancelButton>
-                        <EditorSecondaryButton
-                            type="button"
-                            onClick={(event) => handleSaveEditor(event, true)}
-                            disabled={isSaving}
-                        >
-                            {isSaving ? 'SAVING...' : 'SAVE'}
-                        </EditorSecondaryButton>
+                        {isAddingNew && (
+                            <EditorSecondaryButton
+                                type="button"
+                                onClick={(event) => handleSaveEditor(event, false)}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? 'SAVING...' : 'SAVE'}
+                            </EditorSecondaryButton>
+                        )}
+                        {!isAddingNew && (
+                            <EditorSecondaryButton
+                                type="button"
+                                onClick={(event) => handleSaveEditor(event, !isViewAllMode)}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? 'SAVING...' : 'SAVE'}
+                            </EditorSecondaryButton>  
+                        )}
                     </EditorActions>
                 </EditorForm>
             ) : (
@@ -497,18 +585,20 @@ function Flashcard({
                         type="button"
                         onClick={(event) => {
                             event.stopPropagation()
-                            setShowCardMenu(menuOpen => !menuOpen)
+                            setOpenMenuCardId(isCardMenuOpen ? '' : cardIndex)
                         }}
                         aria-label="Flashcard options"
                     >
                         i
                     </CardInfoButton>
 
-                    {showCardMenu && (
+                    {isCardMenuOpen && (
                         <CardInfoMenu onClick={(event) => event.stopPropagation()}>
-                            <CardInfoMenuButton type="button" onClick={handleStartAddNew}>
-                                Add New
-                            </CardInfoMenuButton>
+                            {!isViewAllMode && (
+                                <CardInfoMenuButton type="button" onClick={handleStartAddNew}>
+                                    Add New
+                                </CardInfoMenuButton>
+                            )}
                             <CardInfoMenuButton
                                 type="button"
                                 onClick={handleStartEdit}
@@ -524,8 +614,8 @@ function Flashcard({
                 </>
             )}
 
-            {/* Only show review buttons when not editing, and only show them after the card has been flipped */}
-            {!isEditing && isFlipped && currentCard && (
+            {/* Only show review buttons when not editing, flipped, and not in view all mode */}
+            {!isEditing && isFlipped && !isViewAllMode && currentCard && (
                 <ReviewButtonsRow>
                     {SPACED_REP_OPTIONS.map(option => (
                         <ReviewOption key={option.id}>
@@ -565,8 +655,8 @@ const CardsGrid = styled.section`
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
-    width: min(1200px, 100%);
     margin: 6rem auto;
+    width: min(1200px, 100%);
 
     @media (max-width: 1023px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -668,9 +758,8 @@ const StatTooltip = styled.div`
 `
 
 const CardStage = styled.section`
-    width: min(26rem, 100%);
     margin: 8rem auto 0;
-
+    
     @media (max-width: 760px) {
         margin-top: 3rem;
     }
@@ -678,17 +767,52 @@ const CardStage = styled.section`
 
 const FlashcardShell = styled.div`
     position: relative;
-    min-height: 18rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    width: min(26rem, 100%);
+    aspect-ratio: 4 / 5;
+    height: auto;
     border: 1px solid ${props => props.theme.border};
     border-radius: 10px;
     background: ${props => props.theme.surface};
-    box-sizing: border-box;
+    overflow: visible;
+    margin: auto;
+`
+
+const AddCardButton = styled.button`
+    width: min(26rem, 100%);
+    aspect-ratio: 4 / 5;
+    border: 1px dashed ${props => props.theme.border};
+    border-radius: 12px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin: auto;
+
+    &:hover {
+        background: ${props => props.theme.surface};
+    }
+
+    &:hover span {
+        color: ${props => props.theme.text};
+    }
+`
+
+const AddCardSymbol = styled.span`
+    font-size: 3.6rem;
+    line-height: 1;
+    color: ${props => props.theme.muted};
 `
 
 const FlipScene = styled.div`
     perspective: 1000px;
     width: 100%;
-    height: 18rem;
+    flex-grow: 1;
     cursor: pointer;
 `
 
@@ -708,7 +832,6 @@ const CardFace = styled.div`
     inset: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    padding: 1.6rem;
     border-radius: 10px;
     color: ${props => props.theme.text};
     font-size: 1.15rem;
@@ -717,7 +840,6 @@ const CardFace = styled.div`
     white-space: pre-wrap;
     word-break: break-word;
     transform: ${props => props.$isBackFace ? 'rotateY(180deg)' : 'rotateY(0deg)'};
-    box-sizing: border-box;
     overflow-y: auto;
 `
 
@@ -747,8 +869,8 @@ const CardInfoButton = styled.button`
 
 const CardInfoMenu = styled.div`
     position: absolute;
-    left: -6.2rem;
-    bottom: -1.4rem;
+    left: 2.5rem;
+    bottom: 1rem;
     background: ${props => props.theme.surface};
     border: 1px solid ${props => props.theme.border};
     border-radius: 6px;
@@ -756,6 +878,7 @@ const CardInfoMenu = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.22rem;
+    z-index: 20;
 `
 
 const CardInfoMenuButton = styled.button`
@@ -785,9 +908,12 @@ const DeleteButton = styled(CardInfoMenuButton)`
 
 const ReviewButtonsRow = styled.div`
     margin-top: 1rem;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
     gap: 0.6rem;
+    width: 100%;
 `
 
 const ReviewOption = styled.div`
@@ -800,8 +926,8 @@ const ReviewOption = styled.div`
 const ReviewButton = styled.button`
     border: none;
     border-radius: 10px;
-    padding: 0.75rem 0.4rem;
-    font-size: 1.3rem;
+    padding: .15rem .5rem .25rem .5rem;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     background: ${props => {
@@ -828,11 +954,11 @@ const ReviewDelay = styled.span`
 `
 
 const EditorForm = styled.form`
-    height: 100%;
-    display: grid;
-    grid-template-rows: auto auto auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
     gap: 1rem;
-    padding: 1rem;
+    overflow: auto;
 `
 
 const HiddenLabel = styled.label`
@@ -856,7 +982,6 @@ const EditorTextArea = styled.textarea`
     line-height: 1.4;
     padding: 0.75rem 0.85rem;
     resize: vertical;
-    box-sizing: border-box;
 `
 
 const EditorSaveButton = styled.button`
@@ -891,9 +1016,7 @@ const EditorCancelButton = styled(EditorSaveButton)`
 `
 
 const EditorActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
+    text-align: right;
 `
 
 const FlashcardsError = styled.p`

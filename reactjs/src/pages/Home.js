@@ -569,7 +569,7 @@ const DeleteDeckBtn = styled(DeckTooltipBtn)`
 
 const AddDeckBtn = styled.button`
     min-height: 180px;
-    border: 1px dashed transparent;
+    border: 1px dashed ${props => props.theme.border};
     border-radius: 12px;
     background: transparent;
     display: flex;
@@ -580,7 +580,6 @@ const AddDeckBtn = styled.button`
 
     &:hover {
         background: ${props => props.theme.surface};
-        border-color: ${props => props.theme.border};
     }
 
     &:hover span {
