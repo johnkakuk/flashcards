@@ -656,7 +656,7 @@ const CardsGrid = styled.section`
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
     margin: 6rem auto;
-    width: min(1200px, 100%);
+    width: min(900px, 100%);
 
     @media (max-width: 1023px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -772,7 +772,7 @@ const FlashcardShell = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem;
-    width: min(26rem, 100%);
+    width: min(21rem, 100%);
     aspect-ratio: 4 / 5;
     height: auto;
     border: 1px solid ${props => props.theme.border};
@@ -783,7 +783,7 @@ const FlashcardShell = styled.div`
 `
 
 const AddCardButton = styled.button`
-    width: min(26rem, 100%);
+    width: min(21rem, 100%);
     aspect-ratio: 4 / 5;
     border: 1px dashed ${props => props.theme.border};
     border-radius: 12px;
@@ -978,7 +978,7 @@ const EditorTextArea = styled.textarea`
     border-radius: 8px;
     background: ${props => props.theme.bg};
     color: ${props => props.theme.text};
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1.4;
     padding: 0.75rem 0.85rem;
     resize: vertical;
@@ -1021,7 +1021,7 @@ const EditorActions = styled.div`
 
 const FlashcardsError = styled.p`
     margin: 1rem auto 0;
-    width: min(26rem, 100%);
+    width: min(21rem, 100%);
     color: ${props => props.theme.danger};
     font-size: 0.95rem;
 `

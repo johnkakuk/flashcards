@@ -415,6 +415,7 @@ const Card = styled.article`
     padding: 1.25rem;
     transition: background-color 180ms ease, border-color 180ms ease;
     cursor: ${props => props.$canOpenDeck ? 'pointer' : 'default'};
+    aspect-ratio: 4 / 5;
 `
 
 const DeckTitle = styled.h2`
@@ -617,7 +618,7 @@ const DecksGrid = styled.section`
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
-    width: min(1200px, 100%);
+    width: min(900px, 100%);
     margin: 6rem auto;
 
     @media (max-width: 1023px) {
