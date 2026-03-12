@@ -382,57 +382,238 @@ function AddDeckCard({ onAddDeck }) {
 export default Home
 
 const Card = styled.article`
-    border: 1px solid;
+    position: relative;
+    min-height: 180px;
+    border: 1px solid ${props => props.theme.border};
+    border-radius: 10px;
+    background: ${props => props.theme.surface};
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.25rem;
+    transition: background-color 180ms ease, border-color 180ms ease;
+    cursor: ${props => props.$canOpenDeck ? 'pointer' : 'default'};
 `
 
-const DeckTitle = styled.h2``
+const DeckTitle = styled.h2`
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.15;
+    color: ${props => props.theme.text};
 
-const DeckStats = styled.div``
+    @media (max-width: 640px) {
+        font-size: 1rem;
+    }
+`
 
-const DeckStatsLine = styled.p``
+const DeckStats = styled.div`
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.55rem;
+    text-align: right;
+    color: ${props => props.theme.text};
+    font-size: 0.78rem;
+    line-height: 1.22;
+`
 
-const DeckStatsLabel = styled.span``
+const DeckStatsLine = styled.p`
+    margin: 0;
+`
 
-const DeckEditForm = styled.form``
+const DeckStatsLabel = styled.span`
+    color: ${props => props.theme.muted};
+`
 
-const DeckInput = styled.input``
+const DeckEditForm = styled.form`
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    display: grid;
+    gap: 0.65rem;
+`
+
+const DeckInput = styled.input`
+    width: 100%;
+    max-width: calc(100% - 1.25rem);
+    border: 1px solid ${props => props.theme.border};
+    border-radius: 8px;
+    background: ${props => props.theme.bg};
+    color: ${props => props.theme.text};
+    font-size: 1.2rem;
+    padding: 0.45rem 0.55rem;
+
+    @media (max-width: 640px) {
+        font-size: 1.2rem;
+    }
+`
 
 const SaveDeckBtn = styled.button`
+    border: none;
+    background: transparent;
+    color: ${props => props.theme.accent};
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.15rem 0;
     cursor: pointer;
 
+    &:hover {
+        background: transparent;
+        color: ${props => props.theme.accent};
+    }
+
     &:disabled {
+        color: ${props => props.theme.muted};
         cursor: not-allowed;
     }
 `
 
-const CancelDeckBtn = styled(SaveDeckBtn)``
+const CancelDeckBtn = styled(SaveDeckBtn)`
+    color: ${props => props.theme.muted};
 
-const DeckEditActions = styled.div``
+    &:hover {
+        color: ${props => props.theme.text};
+    }
+`
 
-const DeckInfoBtn = styled.button``
+const DeckEditActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+`
+
+const DeckInfoBtn = styled.button`
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid ${props => props.theme.info};
+    border-radius: 50%;
+    background: transparent;
+    color: ${props => props.theme.info};
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background: ${props => props.theme.bg};
+    }
+`
 
 const DeckTooltip = styled.div`
-    border: 1px solid;
+    position: absolute;
+    left: 32px;
+    bottom: 22px;
+    background: ${props => props.theme.surface};
+    border-radius: 6px;
+    border: 1px solid ${props => props.theme.border};
+    padding: 0.35rem 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    box-shadow: 0 6px 18px rgba(47, 54, 64, 0.12);
 `
 
 const DeckTooltipBtn = styled.button`
+    margin: 0;
+    border: none;
+    background: transparent;
+    padding: 0;
+    text-align: left;
+    color: ${props => props.theme.text};
+    font-size: 0.92rem;
+    line-height: 1.2;
     cursor: pointer;
+
+    &:hover {
+        background: transparent;
+        text-decoration: underline;
+    }
 `
 
-const DeleteDeckBtn = styled(DeckTooltipBtn)``
+const DeleteDeckBtn = styled(DeckTooltipBtn)`
+    color: ${props => props.theme.danger};
+`
 
 const AddDeckBtn = styled.button`
-    border: 1px solid;
+    min-height: 180px;
+    border: 1px dashed transparent;
+    border-radius: 12px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    cursor: pointer;
+
+    &:hover {
+        background: ${props => props.theme.surface};
+        border-color: ${props => props.theme.border};
+    }
+
+    &:hover span {
+        color: ${props => props.theme.text};
+    }
 `
 
-const AddDeckSymbol = styled.span``
+const AddDeckSymbol = styled.span`
+    font-size: 3.6rem;
+    line-height: 1;
+    color: ${props => props.theme.muted};
+`
 
-const DecksHome = styled.section``
+const DecksHome = styled.section`
+    min-height: 100vh;
+    padding: 2rem 3rem;
+    background: ${props => props.theme.bg};
+    color: ${props => props.theme.text};
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 180ms ease, color 180ms ease;
 
-const DecksHeading = styled.h1``
+    @media (max-width: 640px) {
+        padding: 1rem;
+    }
+`
 
-const DecksGrid = styled.section``
+const DecksHeading = styled.h1`
+    margin: 0 0 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+`
 
-const DecksError = styled.p``
+const DecksGrid = styled.section`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    width: min(1200px, 100%);
+    margin: 6rem auto;
 
-const DecksStatus = styled.p``
+    @media (max-width: 1023px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 767px) {
+        grid-template-columns: 1fr;
+        margin-top: 3rem;
+    }
+`
+
+const DecksError = styled.p`
+    color: ${props => props.theme.danger};
+    margin: 0 0 0.75rem;
+`
+
+const DecksStatus = styled.p`
+    color: ${props => props.theme.muted};
+`

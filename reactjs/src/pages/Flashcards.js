@@ -310,7 +310,8 @@ function Flashcards() {
     }
 
     return (
-        <FlashcardsPage onClick={() => setShowCardMenu(false)}>
+        // Next line: close the card menu if open when user clicks outside of it
+        <FlashcardsPage onClick={() => setShowCardMenu(false)}> 
             <TopBar>
                 <BackButton type="button" onClick={handleBack}>
                     Back
@@ -450,56 +451,139 @@ function Flashcards() {
 
 export default Flashcards
 
-const FlashcardsPage = styled.section``
+const FlashcardsPage = styled.section`
+    min-height: 100vh;
+    padding: 2rem 3rem;
+    background: ${props => props.theme.bg};
+    color: ${props => props.theme.text};
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 180ms ease, color 180ms ease;
 
-const TopBar = styled.header``
-
-const BackButton = styled.button`
-    cursor: pointer;
+    @media (max-width: 760px) {
+        padding: 1rem;
+    }
 `
 
-const DeckName = styled.h1``
+const TopBar = styled.header`
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+`
 
-const StatsColumn = styled.div``
+const BackButton = styled.button`
+    justify-self: start;
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: ${props => props.theme.text};
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+    padding: 0;
+    cursor: pointer;
+    margin: 0 0 1.5rem;
 
-const StatItem = styled.div``
+    @media (max-width: 760px) {
+        font-size: 1.2rem;
+    }
+`
 
-const StatValue = styled.span``
+const DeckName = styled.h1`
+    justify-self: center;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+
+    @media (max-width: 760px) {
+        font-size: 1.35rem;
+    }
+`
+
+const StatsColumn = styled.div`
+    justify-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+`
+
+const StatItem = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+`
+
+const StatValue = styled.span`
+    min-width: 1.6rem;
+    text-align: right;
+    color: ${props => props.theme.text};
+    font-size: 1.5rem;
+    line-height: 1;
+`
 
 const StatValueHover = styled.div`
     position: relative;
-    display: inline;
+    display: inline-flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-width: 1.6rem;
 
     &:hover > div {
-        display: block;
+        opacity: 1;
+        transform: translateY(0);
     }
 `
 
 const StatTooltip = styled.div`
-    border: 1px solid;
-    display: none;
     position: absolute;
-    top: 100%;
-    left: 0;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    padding: 0.35rem 0.55rem;
+    border-radius: 6px;
+    background: ${props => props.theme.surface};
+    border: 1px solid ${props => props.theme.border};
+    color: ${props => props.theme.text};
+    font-size: 0.86rem;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 140ms ease, transform 140ms ease;
     white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
 `
 
-const CardStage = styled.section``
+const CardStage = styled.section`
+    width: min(26rem, 100%);
+    margin: 8rem auto 0;
+
+    @media (max-width: 760px) {
+        margin-top: 3rem;
+    }
+`
 
 const FlashcardShell = styled.div`
-    border: 1px solid;
     position: relative;
+    min-height: 18rem;
+    border: 1px solid ${props => props.theme.border};
+    border-radius: 10px;
+    background: ${props => props.theme.surface};
+    box-sizing: border-box;
 `
 
 const FlipScene = styled.div`
+    perspective: 1000px;
+    width: 100%;
+    height: 18rem;
     cursor: pointer;
 `
 
 const FlipCard = styled.div`
     position: relative;
-    min-height: 16rem;
+    width: 100%;
+    height: 100%;
     transform-style: preserve-3d;
-    transition: none;
+    transition: transform 380ms ease;
     transform: ${props => props.$isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'};
 `
 
@@ -510,69 +594,197 @@ const CardFace = styled.div`
     inset: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    padding: 1.6rem;
+    border-radius: 10px;
+    color: ${props => props.theme.text};
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-word;
     transform: ${props => props.$isBackFace ? 'rotateY(180deg)' : 'rotateY(0deg)'};
+    box-sizing: border-box;
     overflow-y: auto;
 `
 
 const CardInfoButton = styled.button`
     position: absolute;
-    left: 0;
-    bottom: 0;
+    left: 10px;
+    bottom: 10px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid ${props => props.theme.info};
+    border-radius: 50%;
+    background: transparent;
+    color: ${props => props.theme.info};
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background: ${props => props.theme.bg};
+    }
 `
 
 const CardInfoMenu = styled.div`
-    border: 1px solid;
     position: absolute;
-    left: 0;
-    bottom: 2rem;
+    left: -6.2rem;
+    bottom: -1.4rem;
+    background: ${props => props.theme.surface};
+    border: 1px solid ${props => props.theme.border};
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
 `
 
 const CardInfoMenuButton = styled.button`
+    margin: 0;
+    border: none;
+    background: transparent;
+    padding: 0;
+    text-align: left;
+    color: ${props => props.theme.text};
+    font-size: 1.25rem;
     cursor: pointer;
 
+    &:hover {
+        text-decoration: underline;
+    }
+
     &:disabled {
+        opacity: 0.5;
         cursor: not-allowed;
+        text-decoration: none;
     }
 `
 
-const DeleteButton = styled(CardInfoMenuButton)``
+const DeleteButton = styled(CardInfoMenuButton)`
+    color: ${props => props.theme.danger};
+`
 
-const ReviewButtonsRow = styled.div``
+const ReviewButtonsRow = styled.div`
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+`
 
-const ReviewOption = styled.div``
+const ReviewOption = styled.div`
+    display: grid;
+    grid-template-rows: auto auto;
+    justify-items: center;
+    gap: 0.25rem;
+`
 
 const ReviewButton = styled.button`
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 0.4rem;
+    font-size: 1.3rem;
+    font-weight: 700;
     cursor: pointer;
+    background: ${props => {
+        return props.theme.surface
+    }};
+    color: ${props => {
+        if (props.$tone === 'again') return props.theme.danger
+        if (props.$tone === 'hard') return props.theme.hard
+        if (props.$tone === 'good') return props.theme.accent
+        return props.theme.info
+    }};
+    border: 1px solid ${props => props.theme.border};
 
     &:disabled {
+        opacity: 0.7;
         cursor: not-allowed;
     }
 `
 
-const ReviewDelay = styled.span``
+const ReviewDelay = styled.span`
+    font-size: 0.78rem;
+    line-height: 1.1;
+    color: ${props => props.theme.muted};
+`
 
-const EditorForm = styled.form``
+const EditorForm = styled.form`
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 1rem;
+    padding: 1rem;
+`
 
 const HiddenLabel = styled.label`
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 `
 
-const EditorTextArea = styled.textarea``
+const EditorTextArea = styled.textarea`
+    width: 100%;
+    border: 1px solid ${props => props.theme.border};
+    border-radius: 8px;
+    background: ${props => props.theme.bg};
+    color: ${props => props.theme.text};
+    font-size: 1.1rem;
+    line-height: 1.4;
+    padding: 0.75rem 0.85rem;
+    resize: vertical;
+    box-sizing: border-box;
+`
 
 const EditorSaveButton = styled.button`
+    justify-self: end;
+    border: none;
+    background: transparent;
+    color: ${props => props.theme.accent};
+    font-size: 0.8rem;
+    font-weight: 700;
     cursor: pointer;
 
+    &:hover {
+        color: ${props => props.theme.accent};
+    }
+
     &:disabled {
+        color: ${props => props.theme.muted};
         cursor: not-allowed;
     }
 `
 
-const EditorSecondaryButton = styled(EditorSaveButton)``
+const EditorSecondaryButton = styled(EditorSaveButton)`
+    opacity: 0.9;
+`
 
-const EditorCancelButton = styled(EditorSaveButton)``
+const EditorCancelButton = styled(EditorSaveButton)`
+    color: ${props => props.theme.muted};
 
-const EditorActions = styled.div``
+    &:hover {
+        color: ${props => props.theme.text};
+    }
+`
 
-const FlashcardsError = styled.p``
+const EditorActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+`
+
+const FlashcardsError = styled.p`
+    margin: 1rem auto 0;
+    width: min(26rem, 100%);
+    color: ${props => props.theme.danger};
+    font-size: 0.95rem;
+`

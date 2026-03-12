@@ -9,30 +9,30 @@ import sunIcon from './images/np_sun_8202492_000000.svg'
 const THEME_STORAGE_KEY = 'flashcards-theme'
 
 const lightTheme = {
-    bg: '#ffffff',
-    surface: '#ffffff',
-    text: '#111111',
-    muted: '#555555',
-    border: '#cccccc',
-    accent: '#111111',
-    hard: '#cc6600',
-    danger: '#111111',
-    info: '#111111',
-    toggleShadow: 'none',
+    bg: '#eceff1',
+    surface: '#e1e6eb',
+    text: '#2f3640',
+    muted: '#647182',
+    border: '#8ba4b5',
+    accent: '#2f8b4f',
+    hard: '#d9822b',
+    danger: '#c0392b',
+    info: '#5e6fc1',
+    toggleShadow: '0 8px 20px rgba(20, 28, 37, 0.14)',
     toggleIconFilter: 'none'
 }
 
 const darkTheme = {
-    bg: '#111111',
-    surface: '#111111',
-    text: '#f3f3f3',
-    muted: '#cccccc',
-    border: '#666666',
-    accent: '#f3f3f3',
-    hard: '#ff9933',
-    danger: '#f3f3f3',
-    info: '#f3f3f3',
-    toggleShadow: 'none',
+    bg: '#171c23',
+    surface: '#242b36',
+    text: '#e7edf5',
+    muted: '#aab8c9',
+    border: '#4d6472',
+    accent: '#56c684',
+    hard: '#ffb86c',
+    danger: '#ff847a',
+    info: '#98c4ff',
+    toggleShadow: '0 8px 20px rgba(0, 0, 0, 0.32)',
     toggleIconFilter: 'invert(1)'
 }
 
@@ -96,6 +96,16 @@ const GlobalThemeStyle = createGlobalStyle`
     body {
         background: ${props => props.theme.bg};
         color: ${props => props.theme.text};
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.4;
+        transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+        font-family: inherit;
     }
 `
 
@@ -103,18 +113,34 @@ const ThemeToggleBtn = styled.button`
     position: fixed;
     left: 1rem;
     bottom: 1rem;
-    border: 0;
-    background: transparent;
+    border-radius: 999px;
+    border: 1px solid ${props => props.theme.border};
+    background: ${props => props.theme.surface};
+    box-shadow: ${props => props.theme.toggleShadow};
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     z-index: 1200;
     cursor: pointer;
+
+    &:hover {
+        transform: translateY(-1px);
+    }
 `
 
 const ThemeIconWrap = styled.span`
-    display: inline;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    background: ${props => props.theme.bg};
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 `
 
 const ThemeIcon = styled.img`
-    width: 1rem;
-    height: 1rem;
+    width: 1.25rem;
+    height: 1.25rem;
     filter: ${props => props.theme.toggleIconFilter};
 `
