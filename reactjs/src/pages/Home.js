@@ -176,6 +176,17 @@ function Home() {
         setError('')
     }
 
+    // Handler for viewing all cards in a deck
+    const handleViewAll = async (deck) => {
+        setMenuDeckId('')
+        navigate(`/decks/${deck._id}`, {
+            state: {
+                deckName: deck.name,
+                viewingAllCards: true
+            }
+        })
+    }
+
     // Handler for deleting a deck
     const handleDeleteDeck = async (deck) => {
         setMenuDeckId('')
@@ -253,6 +264,7 @@ function Home() {
                             onToggleMenu={(event) => handleToggleMenu(event, deck._id)}
                             onStartRename={() => handleStartRename(deck)}
                             onDelete={() => handleDeleteDeck(deck)}
+                            onViewAll={() => handleViewAll(deck)}
                             onNameChange={(event) => setEditingName(event.target.value)}
                             onSave={(event) => handleSaveDeck(event, deck)}
                             onCancel={() => handleCancelDeckEdit(deck)}
@@ -281,6 +293,7 @@ function DeckCard({
     showMenu,
     onToggleMenu,
     onStartRename,
+    onViewAll,
     onDelete,
     onNameChange,
     onSave,
@@ -352,6 +365,15 @@ function DeckCard({
                                 }}
                             >
                                 Rename
+                            </DeckTooltipBtn>
+                            <DeckTooltipBtn
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation()
+                                    onViewAll()
+                                }}
+                            >
+                                View All
                             </DeckTooltipBtn>
                             <DeleteDeckBtn
                                 type="button"

@@ -16,27 +16,20 @@ function Flashcards() {
     const navigate = useNavigate()
     const location = useLocation()
 
+    const [allCards, setAllCards] = useState([])
     const [sessionCards, setSessionCards] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const [isFlipped, setIsFlipped] = useState(false)
-    const [isEditing, setIsEditing] = useState(false)
-    const [isAddingNew, setIsAddingNew] = useState(false)
     const [showCardMenu, setShowCardMenu] = useState(false)
-    const [isSaving, setIsSaving] = useState(false)
-    const [isRating, setIsRating] = useState(false)
-    const [editorValues, setEditorValues] = useState({
-        front: '',
-        back: ''
-    })
-    const frontEditorRef = useRef(null)
+    const [viewingAllCards, setViewingAllCards] = useState(
+        Boolean(location.state?.viewingAllCards)
+    )
 
     const API_BASE = process.env.NODE_ENV === 'development'
         ? 'http://localhost:8000/api/v1'
         : process.env.REACT_APP_BASE_URL
 
     const deckName = location.state?.deckName || deckId || 'Deck'
-    const currentCard = sessionCards[0] || null
     const cardsLeftCount = sessionCards.length
 
     // Load session cards on mount
@@ -80,6 +73,140 @@ function Flashcards() {
             ignore = true
         }
     }, [API_BASE, deckId])
+
+    // Load cards for "view all" mode when that mode is activated
+    useEffect(() => {
+        setViewingAllCards(Boolean(location.state?.viewingAllCards))
+        if (!viewingAllCards) {
+            return
+        }
+
+        let ignore = false
+        
+        const fetchAllCards = async () => {
+            setLoading(true)
+            setError('')
+
+            try {
+                const response = await fetch(`${API_BASE}/cards?deck=${deckId}`)
+                const cards = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(cards.message || 'Unable to load flashcards')
+                }
+
+                // Sort by creation date, oldest to newest
+                const allCards = (cards || [])
+                    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+                if (!ignore) {
+                    setAllCards(allCards)
+                }
+            } catch (err) {
+                if (!ignore) {
+                    setError(err.message || 'Unexpected error while loading cards')
+                }
+            } finally {
+                if (!ignore) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        fetchAllCards()
+        
+        return () => {
+            ignore = true
+        }
+    }, [location.state?.viewingAllCards, API_BASE, deckId])
+
+    // Handler for navigating back to the home page
+    const handleBack = () => {
+        navigate('/')
+    }
+
+    return (
+        // Next line: close the card menu if open when user clicks outside of it
+        <FlashcardsPage onClick={() => setShowCardMenu(false)}> 
+            <TopBar>
+                <BackButton type="button" onClick={handleBack}>
+                    Back
+                </BackButton>
+
+                <DeckName>{deckName}</DeckName>
+
+                <StatsColumn>
+                    <StatItem>
+                        <StatValueHover>
+                            <StatValue>{cardsLeftCount}</StatValue>
+                            <StatTooltip>Cards left in this session</StatTooltip>
+                        </StatValueHover>
+                    </StatItem>
+                </StatsColumn>
+            </TopBar>
+
+            <CardStage>
+                {viewingAllCards ? (
+                    <CardsGrid>
+                        {allCards.map(card => {
+                            return (
+                                <Flashcard
+                                    cardSet={allCards}
+                                    setCardSet={setAllCards}
+                                    loading={loading}
+                                    setError={setError}
+                                    apiBase={API_BASE}
+                                    deckId={deckId}
+                                    showCardMenu={showCardMenu}
+                                    setShowCardMenu={setShowCardMenu}
+                                    key={card._id}
+                                />
+                            )
+                        })}
+                    </CardsGrid>
+                ) : (
+                    <Flashcard
+                        cardSet={sessionCards}
+                        setCardSet={setSessionCards}
+                        loading={loading}
+                        setError={setError}
+                        apiBase={API_BASE}
+                        deckId={deckId}
+                        showCardMenu={showCardMenu}
+                        setShowCardMenu={setShowCardMenu}
+                    />
+                )}            
+            </CardStage>
+
+            {/* Errors at the end */}
+            {error && <FlashcardsError>{error}</FlashcardsError>}
+        </FlashcardsPage>
+    )
+}
+
+function Flashcard({
+    cardSet,
+    setCardSet,
+    loading,
+    setError,
+    apiBase,
+    deckId,
+    showCardMenu,
+    setShowCardMenu,
+    key
+}) {
+    const currentCard = cardSet.find(card => card._id === key) || null
+
+    const [isFlipped, setIsFlipped] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [isAddingNew, setIsAddingNew] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [isRating, setIsRating] = useState(false)
+    const [editorValues, setEditorValues] = useState({
+        front: '',
+        back: ''
+    })
+    const frontEditorRef = useRef(null)
 
     // Handler for card clicks. Simple class toggle with CSS flip
     const handleFlipCard = () => {
@@ -136,7 +263,7 @@ function Flashcards() {
         }
 
         try {
-            const response = await fetch(`${API_BASE}/cards/${currentCard._id}`, {
+            const response = await fetch(`${apiBase}/cards/${currentCard._id}`, {
                 method: 'DELETE'
             })
             const data = await response.json()
@@ -145,7 +272,7 @@ function Flashcards() {
                 throw new Error(data.message || 'Unable to delete card')
             }
 
-            setSessionCards(cards => cards.slice(1))
+            setCardSet(cards => cards.slice(1))
             setIsEditing(false)
             setIsFlipped(false)
         } catch (err) {
@@ -198,7 +325,7 @@ function Flashcards() {
 
             // POST if adding new
             if (isAddingNew) {
-                const response = await fetch(`${API_BASE}/cards`, {
+                const response = await fetch(`${apiBase}/cards`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -219,7 +346,7 @@ function Flashcards() {
 
                 savedCard = createdCard
             } else { // PATCH if editing existing
-                const response = await fetch(`${API_BASE}/cards/${currentCard._id}`, {
+                const response = await fetch(`${apiBase}/cards/${currentCard._id}`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json'
@@ -241,9 +368,9 @@ function Flashcards() {
             // Again, this is vestigial, but it allows for flexibility later without changing the core saving logic, so I'm keeping it in for now.
             if (shouldAddNew) {
                 if (isAddingNew) {
-                    setSessionCards(cards => [savedCard, ...cards])
+                    setCardSet(cards => [savedCard, ...cards])
                 } else {
-                    setSessionCards(cards => [savedCard, ...cards.slice(1)])
+                    setCardSet(cards => [savedCard, ...cards.slice(1)])
                 }
                 setEditorValues({ front: '', back: '' })
                 setIsEditing(true)
@@ -251,9 +378,9 @@ function Flashcards() {
                 focusFrontEditor()
             } else {
                 if (isAddingNew) {
-                    setSessionCards(cards => [savedCard, ...cards])
+                    setCardSet(cards => [savedCard, ...cards])
                 } else {
-                    setSessionCards(cards => [savedCard, ...cards.slice(1)])
+                    setCardSet(cards => [savedCard, ...cards.slice(1)])
                 }
                 setIsEditing(false)
                 setIsAddingNew(false)
@@ -279,7 +406,7 @@ function Flashcards() {
             const now = new Date()
             const showNext = new Date(now.getTime() + delayMs)
 
-            const response = await fetch(`${API_BASE}/cards/${currentCard._id}`, {
+            const response = await fetch(`${apiBase}/cards/${currentCard._id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
@@ -295,7 +422,7 @@ function Flashcards() {
                 throw new Error(updatedCard.message || 'Unable to score card')
             }
 
-            setSessionCards(cards => cards.slice(1))
+            setCardSet(cards => cards.slice(1))
             setIsFlipped(false)
         } catch (err) {
             setError(err.message || 'Unexpected error while scoring card')
@@ -304,148 +431,118 @@ function Flashcards() {
         }
     }
 
-    // Handler for navigating back to the home page
-    const handleBack = () => {
-        navigate('/')
-    }
-
     return (
-        // Next line: close the card menu if open when user clicks outside of it
-        <FlashcardsPage onClick={() => setShowCardMenu(false)}> 
-            <TopBar>
-                <BackButton type="button" onClick={handleBack}>
-                    Back
-                </BackButton>
+        <FlashcardShell>
+            {/* Conditional rendering for flashcard view vs editor view */}
+            {isEditing ? (
+                <EditorForm onSubmit={handleSaveEditor} onClick={(event) => event.stopPropagation()}>
+                    <HiddenLabel htmlFor="frontEditor">Front</HiddenLabel>
+                    <EditorTextArea
+                        id="frontEditor"
+                        ref={frontEditorRef}
+                        name="front"
+                        value={editorValues.front}
+                        onChange={(event) => setEditorValues(values => ({ ...values, front: event.target.value }))}
+                        onKeyDown={handleEditorShortcut}
+                        placeholder="Front text"
+                        rows={4}
+                        autoFocus
+                    />
 
-                <DeckName>{deckName}</DeckName>
+                    <HiddenLabel htmlFor="backEditor">Back</HiddenLabel>
+                    <EditorTextArea
+                        id="backEditor"
+                        name="back"
+                        value={editorValues.back}
+                        onChange={(event) => setEditorValues(values => ({ ...values, back: event.target.value }))}
+                        onKeyDown={handleEditorShortcut}
+                        placeholder="Back text"
+                        rows={4}
+                    />
 
-                <StatsColumn>
-                    <StatItem>
-                        <StatValueHover>
-                            <StatValue>{cardsLeftCount}</StatValue>
-                            <StatTooltip>Cards left in this session</StatTooltip>
-                        </StatValueHover>
-                    </StatItem>
-                </StatsColumn>
-            </TopBar>
+                    <EditorActions>
+                        <EditorCancelButton
+                            type="button"
+                            onClick={handleCancelEdit}
+                            disabled={isSaving}
+                        >
+                            CANCEL
+                        </EditorCancelButton>
+                        <EditorSecondaryButton
+                            type="button"
+                            onClick={(event) => handleSaveEditor(event, true)}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'SAVING...' : 'SAVE'}
+                        </EditorSecondaryButton>
+                    </EditorActions>
+                </EditorForm>
+            ) : (
+                <FlipScene onClick={handleFlipCard}>
+                    <FlipCard $isFlipped={isFlipped}>
+                        <CardFace>
+                            {currentCard ? currentCard.front : (loading ? 'Loading cards...' : 'No due cards')}
+                        </CardFace>
+                        <CardFace $isBackFace>
+                            {currentCard ? currentCard.back : 'Add a new card to this deck'}
+                        </CardFace>
+                    </FlipCard>
+                </FlipScene>
+            )}
 
-            <CardStage>
-                <FlashcardShell>
-                    {/* Conditional rendering for flashcard view vs editor view */}
-                    {isEditing ? (
-                        <EditorForm onSubmit={handleSaveEditor} onClick={(event) => event.stopPropagation()}>
-                            <HiddenLabel htmlFor="frontEditor">Front</HiddenLabel>
-                            <EditorTextArea
-                                id="frontEditor"
-                                ref={frontEditorRef}
-                                name="front"
-                                value={editorValues.front}
-                                onChange={(event) => setEditorValues(values => ({ ...values, front: event.target.value }))}
-                                onKeyDown={handleEditorShortcut}
-                                placeholder="Front text"
-                                rows={4}
-                                autoFocus
-                            />
+            {/* Only show the card menu button when not editing */}
+            {!isEditing && (
+                <>
+                    <CardInfoButton
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            setShowCardMenu(menuOpen => !menuOpen)
+                        }}
+                        aria-label="Flashcard options"
+                    >
+                        i
+                    </CardInfoButton>
 
-                            <HiddenLabel htmlFor="backEditor">Back</HiddenLabel>
-                            <EditorTextArea
-                                id="backEditor"
-                                name="back"
-                                value={editorValues.back}
-                                onChange={(event) => setEditorValues(values => ({ ...values, back: event.target.value }))}
-                                onKeyDown={handleEditorShortcut}
-                                placeholder="Back text"
-                                rows={4}
-                            />
-
-                            <EditorActions>
-                                <EditorCancelButton
-                                    type="button"
-                                    onClick={handleCancelEdit}
-                                    disabled={isSaving}
-                                >
-                                    CANCEL
-                                </EditorCancelButton>
-                                <EditorSecondaryButton
-                                    type="button"
-                                    onClick={(event) => handleSaveEditor(event, true)}
-                                    disabled={isSaving}
-                                >
-                                    {isSaving ? 'SAVING...' : 'SAVE'}
-                                </EditorSecondaryButton>
-                            </EditorActions>
-                        </EditorForm>
-                    ) : (
-                        <FlipScene onClick={handleFlipCard}>
-                            <FlipCard $isFlipped={isFlipped}>
-                                <CardFace>
-                                    {currentCard ? currentCard.front : (loading ? 'Loading cards...' : 'No due cards')}
-                                </CardFace>
-                                <CardFace $isBackFace>
-                                    {currentCard ? currentCard.back : 'Add a new card to this deck'}
-                                </CardFace>
-                            </FlipCard>
-                        </FlipScene>
-                    )}
-
-                    {/* Only show the card menu button when not editing */}
-                    {!isEditing && (
-                        <>
-                            <CardInfoButton
+                    {showCardMenu && (
+                        <CardInfoMenu onClick={(event) => event.stopPropagation()}>
+                            <CardInfoMenuButton type="button" onClick={handleStartAddNew}>
+                                Add New
+                            </CardInfoMenuButton>
+                            <CardInfoMenuButton
                                 type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation()
-                                    setShowCardMenu(menuOpen => !menuOpen)
-                                }}
-                                aria-label="Flashcard options"
+                                onClick={handleStartEdit}
+                                disabled={!currentCard}
                             >
-                                i
-                            </CardInfoButton>
-
-                            {showCardMenu && (
-                                <CardInfoMenu onClick={(event) => event.stopPropagation()}>
-                                    <CardInfoMenuButton type="button" onClick={handleStartAddNew}>
-                                        Add New
-                                    </CardInfoMenuButton>
-                                    <CardInfoMenuButton
-                                        type="button"
-                                        onClick={handleStartEdit}
-                                        disabled={!currentCard}
-                                    >
-                                        Edit
-                                    </CardInfoMenuButton>
-                                    <DeleteButton type="button" onClick={handleDeleteCurrent} disabled={!currentCard}>
-                                        Delete
-                                    </DeleteButton>
-                                </CardInfoMenu>
-                            )}
-                        </>
+                                Edit
+                            </CardInfoMenuButton>
+                            <DeleteButton type="button" onClick={handleDeleteCurrent} disabled={!currentCard}>
+                                Delete
+                            </DeleteButton>
+                        </CardInfoMenu>
                     )}
-                </FlashcardShell>
+                </>
+            )}
 
-                {/* Only show review buttons when not editing, and only show them after the card has been flipped */}
-                {!isEditing && isFlipped && currentCard && (
-                    <ReviewButtonsRow>
-                        {SPACED_REP_OPTIONS.map(option => (
-                            <ReviewOption key={option.id}>
-                                <ReviewButton
-                                    type="button"
-                                    $tone={option.tone}
-                                    disabled={isRating}
-                                    onClick={() => handleRateCard(option.delayMs)}
-                                >
-                                    {option.label}
-                                </ReviewButton>
-                                <ReviewDelay>{option.delayLabel}</ReviewDelay>
-                            </ReviewOption>
-                        ))}
-                    </ReviewButtonsRow>
-                )}
-            </CardStage>
-
-            {/* Errors at the end */}
-            {error && <FlashcardsError>{error}</FlashcardsError>}
-        </FlashcardsPage>
+            {/* Only show review buttons when not editing, and only show them after the card has been flipped */}
+            {!isEditing && isFlipped && currentCard && (
+                <ReviewButtonsRow>
+                    {SPACED_REP_OPTIONS.map(option => (
+                        <ReviewOption key={option.id}>
+                            <ReviewButton
+                                type="button"
+                                $tone={option.tone}
+                                disabled={isRating}
+                                onClick={() => handleRateCard(option.delayMs)}
+                            >
+                                {option.label}
+                            </ReviewButton>
+                            <ReviewDelay>{option.delayLabel}</ReviewDelay>
+                        </ReviewOption>
+                    ))}
+                </ReviewButtonsRow>
+            )}
+        </FlashcardShell>
     )
 }
 
@@ -461,6 +558,23 @@ const FlashcardsPage = styled.section`
 
     @media (max-width: 760px) {
         padding: 1rem;
+    }
+`
+
+const CardsGrid = styled.section`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    width: min(1200px, 100%);
+    margin: 6rem auto;
+
+    @media (max-width: 1023px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 767px) {
+        grid-template-columns: 1fr;
+        margin-top: 3rem;
     }
 `
 
