@@ -350,7 +350,7 @@ function Flashcard({
         }
 
         event.preventDefault()
-        const shouldAddAnother = !isViewAllMode && !isAddingNew
+        const shouldAddAnother = !isViewAllMode && isAddingNew
         handleSaveEditor(event, shouldAddAnother)
     }
 
@@ -364,7 +364,7 @@ function Flashcard({
     // Handler for saving both new and edited cards. shouldAddNew functionality is vestigial, keeping it just in case I want it later.
     const handleSaveEditor = async (event, shouldAddNew = false) => {
         event.preventDefault()
-        const canAddAnother = !isViewAllMode && !isAddingNew
+        const canAddAnother = !isViewAllMode && isAddingNew
         const shouldAddAnother = shouldAddNew && canAddAnother
 
         if (!isAddingNew && !currentCard) {
@@ -548,7 +548,7 @@ function Flashcard({
                         {isAddingNew && (
                             <EditorSecondaryButton
                                 type="button"
-                                onClick={(event) => handleSaveEditor(event, false)}
+                                onClick={(event) => handleSaveEditor(event, !isViewAllMode)}
                                 disabled={isSaving}
                             >
                                 {isSaving ? 'SAVING...' : 'SAVE'}
@@ -557,7 +557,7 @@ function Flashcard({
                         {!isAddingNew && (
                             <EditorSecondaryButton
                                 type="button"
-                                onClick={(event) => handleSaveEditor(event, !isViewAllMode)}
+                                onClick={(event) => handleSaveEditor(event, false)}
                                 disabled={isSaving}
                             >
                                 {isSaving ? 'SAVING...' : 'SAVE'}
