@@ -11,8 +11,7 @@ const cardSchema = new mongoose.Schema({
     },
     lastShown: {
         type: Date,
-        required: true,
-        default: Date.now
+        default: null
     },
     showNext: {
         type: Date,

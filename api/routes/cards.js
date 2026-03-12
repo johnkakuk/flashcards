@@ -42,6 +42,7 @@ router.post('/', async (req, res) => {
         front: req.body.front,
         back: req.body.back,
         showNext: req.body.showNext || Date.now(),
+        lastShown: req.body.lastShown || null,
         tag: req.body.tag,
         deck: req.body.deck || null
     })
@@ -67,8 +68,16 @@ router.patch('/:id', getCard, async (req, res) => {
         res.card.showNext = req.body.showNext
     }
 
+    if(req.body.lastShown != null) {
+        res.card.lastShown = req.body.lastShown
+    }
+
     if(req.body.tag != null) {
         res.card.tag = req.body.tag
+    }
+
+    if(req.body.deck != null) {
+        res.card.deck = req.body.deck
     }
 
     try {
