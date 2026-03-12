@@ -578,6 +578,7 @@ const AddDeckBtn = styled.button`
     justify-content: center;
     width: 100%;
     cursor: pointer;
+    aspect-ratio: 4 / 5;
 
     &:hover {
         background: ${props => props.theme.surface};
