@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
+import AuthService from './services/auth.service'
+
 import Home from './pages/Home'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+
 import Flashcards from './pages/Flashcards'
 import moonIcon from './images/np_moon_8138189_000000.svg'
 import sunIcon from './images/np_sun_8202492_000000.svg'
@@ -50,7 +55,9 @@ const getInitialTheme = () => {
 }
 
 function App() {
+    const [currentUser, setCurrentUser] = useState(() => AuthService.getCurrentUser())
     const [themeMode, setThemeMode] = useState(getInitialTheme)
+    const navigate = useNavigate()
 
     useEffect(() => {
         window.localStorage.setItem(THEME_STORAGE_KEY, themeMode)
@@ -64,14 +71,31 @@ function App() {
         setThemeMode(currentTheme => currentTheme === 'dark' ? 'light' : 'dark')
     }
 
+    // Handler for logout button
+    const handleLogout = () => {
+        AuthService.logout()
+        navigate('/login')
+        setCurrentUser(null)
+    }
+
+    // Handler for login/signup success to update current user state
+    const handleAuthSuccess = (userData) => {
+        setCurrentUser(userData)
+        navigate('/')
+    }
+
     return (
         <ThemeProvider theme={activeTheme}>
             <GlobalThemeStyle />
-            <Router>
-                <Routes>
-                    <Route path='/' exact element={<Home />} />
-                    <Route path='/decks/:deckId' exact element={<Flashcards />} />
-                </Routes>
+                <main>
+                    <Routes>
+                        <Route path='/' exact element={currentUser ? <Home onLogout={handleLogout} /> : <Navigate to='/login' replace />} />
+                        <Route path='/decks/:deckId' exact element={currentUser ? <Flashcards /> : <Navigate to='/login' replace />} />
+                        <Route path='/login' exact element={currentUser ? <Navigate to='/' replace /> : <Login onAuthSuccess={handleAuthSuccess} />} />
+                        <Route path='/signup' exact element={currentUser ? <Navigate to='/' replace /> : <Signup onAuthSuccess={handleAuthSuccess} />} />
+                        <Route path='*' element={<Navigate to={currentUser ? '/' : '/login'} replace />} />
+                    </Routes>
+                </main>
                 <ThemeToggleBtn
                     type="button"
                     onClick={handleToggleTheme}
@@ -85,7 +109,6 @@ function App() {
                         />
                     </ThemeIconWrap>
                 </ThemeToggleBtn>
-            </Router>
         </ThemeProvider>
     )
 }

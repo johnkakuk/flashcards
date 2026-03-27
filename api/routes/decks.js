@@ -1,7 +1,10 @@
 const express = require('express');
-const router = express.Router();
-
 const Deck = require('../models/Deck')
+const passport = require('passport');
+
+const protectedRoute = passport.authenticate('jwt', { session: false })
+
+const router = express.Router();
 
 const getDeck = async (req, res, next) => {
     let deck
@@ -18,7 +21,7 @@ const getDeck = async (req, res, next) => {
 }
 
 // GET ALL
-router.get('/', async (req, res) => {
+router.get('/', protectedRoute, async (req, res) => {
     try {
         const decks = await Deck.find()
         res.json(decks)
@@ -27,13 +30,15 @@ router.get('/', async (req, res) => {
     }
 })
 
+
+
 // GET ONE
-router.get('/:id', getDeck, async (req, res) => {
+router.get('/:id', protectedRoute, getDeck, async (req, res) => {
     res.json(res.deck)
 })
 
 // POST
-router.post('/', async (req, res) => {
+router.post('/', protectedRoute, async (req, res) => {
     const deck = new Deck({
         name: req.body.name,
     })
@@ -46,7 +51,7 @@ router.post('/', async (req, res) => {
 })
 
 // PATCH
-router.patch('/:id', getDeck, async (req, res) => {
+router.patch('/:id', protectedRoute, getDeck, async (req, res) => {
     if(req.body.name != null) {
         res.deck.name = req.body.name
     }
@@ -60,7 +65,7 @@ router.patch('/:id', getDeck, async (req, res) => {
 })
 
 // DELETE
-router.delete('/:id', getDeck, async (req, res) => {
+router.delete('/:id', protectedRoute, getDeck, async (req, res) => {
     try {
         await res.deck.deleteOne();
         res.json({ message: "Removed deck" })
