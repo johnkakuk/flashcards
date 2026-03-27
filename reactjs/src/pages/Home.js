@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
+import DecksService from '../services/decks.service'
+import CardsService from '../services/cards.service'
 
-function Home() {
+function Home({ onLogout }) {
     // State, hooks and constants
     const navigate = useNavigate()
     const [decks, setDecks] = useState([])
@@ -15,22 +17,20 @@ function Home() {
     const [savingDeckId, setSavingDeckId] = useState('')
     const [newDeck, setNewDeck] = useState(null)
 
-    const API_BASE = process.env.NODE_ENV === 'development'
-        ? 'http://localhost:8000/api/v1'
-        : process.env.REACT_APP_BASE_URL
-
     useEffect(() => {
         const fetchDecks = async () => {
             setLoading(true)
             setError('')
 
             try {
-                const response = await fetch(`${API_BASE}/decks`)
-                const data = await response.json()
-                if (!response.ok) {
-                    throw new Error(data.message || 'Unable to load decks')
+                const response = await DecksService.getAllPrivateDecks()
+                const data = response?.data
+
+                if (!Array.isArray(data)) {
+                    throw new Error(data?.message || 'Unable to load decks')
                 }
-                setDecks(data || [])
+
+                setDecks(data)
             } catch (err) {
                 setError(err.message || 'Unexpected error while loading decks')
             } finally {
@@ -39,7 +39,7 @@ function Home() {
         }
 
         fetchDecks()
-    }, [API_BASE])
+    }, [])
 
     // Fetch stats
     useEffect(() => {
@@ -49,10 +49,11 @@ function Home() {
         // Fetch all cards to calculate deck stats (total cards and cards due). Kind of inefficient but works for now since we don't expect a huge number of cards. Maybe later I can create a specific endpoint to fetch stats
         const fetchCardStats = async () => {
             try {
-                const response = await fetch(`${API_BASE}/cards`)
-                const cards = await response.json()
-                if (!response.ok) {
-                    throw new Error(cards.message || 'Unable to load card stats')
+                const response = await CardsService.getAllPrivateCards()
+                const cards = response?.data
+
+                if (!Array.isArray(cards)) {
+                    throw new Error(cards.message || 'Unable to load cards for stats')
                 }
 
                 const statsByDeck = (cards || []).reduce((stats, card) => {
@@ -90,7 +91,7 @@ function Home() {
         return () => {
             ignore = true
         }
-    }, [API_BASE])
+    }, [])
 
     // Handler for the info button on deck cards
     const handleToggleMenu = (event, deckId) => {
@@ -121,34 +122,14 @@ function Home() {
 
         try {
             if (deck.isNew) {
-                const response = await fetch(`${API_BASE}/decks`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name: deckName })
-                })
-
-                const savedDeck = await response.json()
-                if (!response.ok) {
-                    throw new Error(savedDeck.message || 'Unable to save new deck')
-                }
+                const response = await DecksService.createPrivateDeck({ name: deckName })
+                const savedDeck = response?.data
 
                 setDecks(currentDecks => [...currentDecks, savedDeck])
                 setNewDeck(null)
             } else {
-                const response = await fetch(`${API_BASE}/decks/${deck._id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name: deckName })
-                })
-
-                const updatedDeck = await response.json()
-                if (!response.ok) {
-                    throw new Error(updatedDeck.message || 'Unable to rename deck')
-                }
+                const response = await DecksService.updatePrivateDeck(deck._id, { name: deckName })
+                const updatedDeck = response?.data
 
                 setDecks(currentDecks =>
                     currentDecks.map(currentDeck =>
@@ -160,7 +141,11 @@ function Home() {
             setEditingDeckId('')
             setEditingName('')
         } catch (err) {
-            setError(err.message || 'Unexpected error while saving deck')
+            const apiError = err?.response?.data?.message
+                || err?.response?.data?.error
+                || err?.message
+                || 'Unexpected error while saving deck'
+            setError(apiError)
         } finally {
             setSavingDeckId('')
         }
@@ -196,14 +181,7 @@ function Home() {
 
         setError('')
         try {
-            const response = await fetch(`${API_BASE}/decks/${deck._id}`, {
-                method: 'DELETE'
-            })
-
-            const data = await response.json()
-            if (!response.ok) {
-                throw new Error(data.message || 'Unable to delete deck')
-            }
+            await DecksService.deletePrivateDeck(deck._id)
 
             setDecks(currentDecks => currentDecks.filter(currentDeck => currentDeck._id !== deck._id))
             if (editingDeckId === deck._id) {
@@ -211,7 +189,11 @@ function Home() {
                 setEditingName('')
             }
         } catch (err) {
-            setError(err.message || 'Unexpected error while deleting deck')
+            const apiError = err?.response?.data?.message
+                || err?.response?.data?.error
+                || err?.message
+                || 'Unexpected error while deleting deck'
+            setError(apiError)
         }
     }
 
@@ -237,11 +219,17 @@ function Home() {
     }
 
     // Combine decks with the new deck being created (if any) for display purposes
-    const displayDecks = newDeck ? [...decks, newDeck] : decks
+    const safeDecks = Array.isArray(decks) ? decks : []
+    const displayDecks = newDeck ? [...safeDecks, newDeck] : safeDecks
 
     return (
         <DecksHome onClick={() => setMenuDeckId('')}>
-            <DecksHeading>Decks</DecksHeading>
+            <DecksTopBar>
+                <DecksHeading>Decks</DecksHeading>
+                <LogoutTextLink type="button" onClick={onLogout}>
+                    Log Out
+                </LogoutTextLink>
+            </DecksTopBar>
             {error && <DecksError>{error}</DecksError>}
             {loading && decks.length === 0 && <DecksStatus>Loading decks...</DecksStatus>}
 
@@ -609,10 +597,30 @@ const DecksHome = styled.section`
 `
 
 const DecksHeading = styled.h1`
-    margin: 0 0 1.5rem;
+    margin: 0;
     font-size: 1.5rem;
     font-weight: 700;
     line-height: 1.15;
+`
+
+const DecksTopBar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 1.5rem;
+`
+
+const LogoutTextLink = styled.button`
+    border: none;
+    background: transparent;
+    color: ${props => props.theme.info};
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
 `
 
 const DecksGrid = styled.section`

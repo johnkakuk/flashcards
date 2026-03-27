@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
+import CardsService from '../services/cards.service'
 
 // Spaced repetition options with corresponding delay times and button tones. Will make this more dynamic later, hardcoding for now 
 const SPACED_REP_OPTIONS = [
@@ -26,10 +27,6 @@ function Flashcards() {
         Boolean(location.state?.viewingAllCards)
     )
 
-    const API_BASE = process.env.NODE_ENV === 'development'
-        ? 'http://localhost:8000/api/v1'
-        : process.env.REACT_APP_BASE_URL
-
     const deckName = location.state?.deckName || deckId || 'Deck'
     const cardsLeftCount = sessionCards.length
 
@@ -43,12 +40,8 @@ function Flashcards() {
             setError('')
 
             try {
-                const response = await fetch(`${API_BASE}/cards?deck=${deckId}`) // Yo I legit did this in ONE DAY, front and back. God I love dev
-                const cards = await response.json()
-
-                if (!response.ok) {
-                    throw new Error(cards.message || 'Unable to load flashcards')
-                }
+                const response = await CardsService.getAllPrivateCardsByDeck(deckId)
+                const cards = response.data
 
                 const dueCards = (cards || [])
                     .filter(card => new Date(card.showNext) <= loadTime)
@@ -73,7 +66,7 @@ function Flashcards() {
         return () => {
             ignore = true
         }
-    }, [API_BASE, deckId])
+    }, [deckId])
 
     // AI Generated: load every card when route state enables view-all mode.
     useEffect(() => {
@@ -90,12 +83,8 @@ function Flashcards() {
             setError('')
 
             try {
-                const response = await fetch(`${API_BASE}/cards?deck=${deckId}`)
-                const cards = await response.json()
-
-                if (!response.ok) {
-                    throw new Error(cards.message || 'Unable to load flashcards')
-                }
+                const response = await CardsService.getAllPrivateCardsByDeck(deckId)
+                const cards = response.data
 
                 // Sort by creation date, oldest to newest
                 const allCards = (cards || [])
@@ -120,7 +109,7 @@ function Flashcards() {
         return () => {
             ignore = true
         }
-    }, [location.state?.viewingAllCards, API_BASE, deckId])
+    }, [location.state?.viewingAllCards, deckId])
 
     // Handler for navigating back to the home page
     const handleBack = () => {
@@ -158,7 +147,6 @@ function Flashcards() {
                                     setCardSet={setAllCards}
                                     loading={loading}
                                     setError={setError}
-                                    apiBase={API_BASE}
                                     deckId={deckId}
                                     openMenuCardId={openMenuCardId}
                                     setOpenMenuCardId={setOpenMenuCardId}
@@ -173,7 +161,6 @@ function Flashcards() {
                                 setCardSet={setAllCards}
                                 loading={loading}
                                 setError={setError}
-                                apiBase={API_BASE}
                                 deckId={deckId}
                                 openMenuCardId={openMenuCardId}
                                 setOpenMenuCardId={setOpenMenuCardId}
@@ -201,7 +188,6 @@ function Flashcards() {
                         setCardSet={setSessionCards}
                         loading={loading}
                         setError={setError}
-                        apiBase={API_BASE}
                         deckId={deckId}
                         openMenuCardId={openMenuCardId}
                         setOpenMenuCardId={setOpenMenuCardId}
@@ -221,7 +207,6 @@ function Flashcard({
     setCardSet,
     loading,
     setError,
-    apiBase,
     deckId,
     openMenuCardId,
     setOpenMenuCardId,
@@ -323,20 +308,17 @@ function Flashcard({
         }
 
         try {
-            const response = await fetch(`${apiBase}/cards/${currentCard._id}`, {
-                method: 'DELETE'
-            })
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Unable to delete card')
-            }
+            await CardsService.deletePrivateCard(currentCard._id)
 
             setCardSet(cards => cards.filter(card => card._id !== currentCard._id))
             setIsEditing(false)
             setIsFlipped(false)
         } catch (err) {
-            setError(err.message || 'Unexpected error while deleting card')
+            const apiError = err?.response?.data?.message
+                || err?.response?.data?.error
+                || err?.message
+                || 'Unexpected error while deleting card'
+            setError(apiError)
         }
     }
 
@@ -388,44 +370,17 @@ function Flashcard({
 
             // POST if adding new
             if (isAddingNew) {
-                const response = await fetch(`${apiBase}/cards`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        front,
-                        back,
-                        deck: deckId,
-                        showNext: new Date().toISOString(),
-                        lastShown: null
-                    })
+                const response = await CardsService.createPrivateCard({
+                    front,
+                    back,
+                    deck: deckId,
+                    showNext: new Date().toISOString(),
+                    lastShown: null
                 })
-
-                const createdCard = await response.json()
-                if (!response.ok) {
-                    throw new Error(createdCard.message || 'Unable to add card')
-                }
-
-                savedCard = createdCard
+                savedCard = response?.data
             } else { // PATCH if editing existing
-                const response = await fetch(`${apiBase}/cards/${currentCard._id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        front,
-                        back
-                    })
-                })
-
-                const updatedCard = await response.json()
-                if (!response.ok) {
-                    throw new Error(updatedCard.message || 'Unable to save card')
-                }
-
-                savedCard = updatedCard
+                const response = await CardsService.updatePrivateCard(currentCard._id, { front, back })
+                savedCard = response?.data
             }
 
             // AI Generated: update local card state by id so edits/deletes affect the selected card, not array position.
@@ -463,7 +418,11 @@ function Flashcard({
                 setIsAddingNew(false)
             }
         } catch (err) {
-            setError(err.message || 'Unexpected error while saving card')
+            const apiError = err?.response?.data?.message
+                || err?.response?.data?.error
+                || err?.message
+                || 'Unexpected error while saving card'
+            setError(apiError)
         } finally {
             setIsSaving(false)
         }
@@ -483,26 +442,19 @@ function Flashcard({
             const now = new Date()
             const showNext = new Date(now.getTime() + delayMs)
 
-            const response = await fetch(`${apiBase}/cards/${currentCard._id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    showNext: showNext.toISOString(),
-                    lastShown: now.toISOString()
-                })
+            await CardsService.updatePrivateCard(currentCard._id, {
+                showNext: showNext.toISOString(),
+                lastShown: now.toISOString()
             })
-
-            const updatedCard = await response.json()
-            if (!response.ok) {
-                throw new Error(updatedCard.message || 'Unable to score card')
-            }
 
             setCardSet(cards => cards.filter(card => card._id !== currentCard._id))
             setIsFlipped(false)
         } catch (err) {
-            setError(err.message || 'Unexpected error while scoring card')
+            const apiError = err?.response?.data?.message
+                || err?.response?.data?.error
+                || err?.message
+                || 'Unexpected error while scoring card'
+            setError(apiError)
         } finally {
             setIsRating(false)
         }

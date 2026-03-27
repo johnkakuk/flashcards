@@ -1,7 +1,9 @@
 const express = require('express');
-const router = express.Router();
-
 const Card = require('../models/Card')
+const passport = require('passport');
+const protectedRoute = passport.authenticate('jwt', { session: false })
+
+const router = express.Router();
 
 const getCard = async (req, res, next) => {
     let card
@@ -18,7 +20,7 @@ const getCard = async (req, res, next) => {
 }
 
 // GET ALL
-router.get('/', async (req, res) => {
+router.get('/', protectedRoute, async (req, res) => {
     try {
         const filter = {}
         if(req.query.deck) {
@@ -32,12 +34,12 @@ router.get('/', async (req, res) => {
 })
 
 // GET ONE
-router.get('/:id', getCard, async (req, res) => {
+router.get('/:id', protectedRoute, getCard, async (req, res) => {
     res.json(res.card)
 })
 
 // POST
-router.post('/', async (req, res) => {
+router.post('/', protectedRoute, async (req, res) => {
     const card = new Card({
         front: req.body.front,
         back: req.body.back,
@@ -55,7 +57,7 @@ router.post('/', async (req, res) => {
 })
 
 // PATCH
-router.patch('/:id', getCard, async (req, res) => {
+router.patch('/:id', protectedRoute, getCard, async (req, res) => {
     if(req.body.front != null) {
         res.card.front = req.body.front
     }
@@ -89,7 +91,7 @@ router.patch('/:id', getCard, async (req, res) => {
 })
 
 // DELETE
-router.delete('/:id', getCard, async (req, res) => {
+router.delete('/:id', protectedRoute, getCard, async (req, res) => {
     try {
         await res.card.deleteOne();
         res.json({ message: "Removed card" })
